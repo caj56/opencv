@@ -91,14 +91,14 @@ double WienerFilterImpl(const Mat& src, Mat& dst, double noiseVariance, const Si
     variances = sqrMeans - (means.mul(means));
 
     if (noiseVariance < 0){
-        // I have to estimate the noiseVariance
+        // 估计噪声大小
         reduce(variances, avgVarianceMat, 1, CV_REDUCE_SUM, -1);
         reduce(avgVarianceMat, avgVarianceMat, 0, CV_REDUCE_SUM, -1);
         noiseVariance = avgVarianceMat(0, 0) / (h*w);
     }
 
     for (int r = 0; r < h; ++r){
-        // get row pointers
+        // 得到每行的坐标
         auto const * const srcRow = src.ptr<uchar>(r);
         auto * const dstRow = dst.ptr<uchar>(r);
         auto * const varRow = variances.ptr<double>(r);
@@ -111,9 +111,8 @@ double WienerFilterImpl(const Mat& src, Mat& dst, double noiseVariance, const Si
     }
     return noiseVariance;
 }
-void WienerFilter(const Mat& src, Mat& dst, double noiseVariance, const Size& block){
+void WienerFilter(const Mat& src, Mat& dst, double noiseVariance, const Size& block) {
     WienerFilterImpl(src, dst, noiseVariance, block);
-    //return;
 }
 double WienerFilter(const Mat& src, Mat& dst, const Size& block){
     return WienerFilterImpl(src, dst, -1, block);
