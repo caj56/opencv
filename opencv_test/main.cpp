@@ -13,10 +13,14 @@ int array1[4];
 int DEBUG= 2;
 int Threshold = 15;
 float sigma = 1.6;
+//_access 只是简单判别在绝对路径下的文件是否存在
 int _access(const char *pathname, int mode);
-double WienerFilter(const cv::Mat& src, cv::Mat& dst, const cv::Size& block = cv::Size(5, 5));
-void WienerFilter(const cv::Mat& src, cv::Mat& dst, double noiseVariance, const cv::Size& block = cv::Size(5, 5));
-void on_mouse(int event, int x, int y, int flags, void *ustc)//event鼠标事件代号，x,y鼠标坐标，flags拖拽和键盘操作的代号
+//WienerFilter 用来维纳滤波噪声估计
+double WienerFilter(const Mat& src, Mat& dst, const Size& block = Size(5, 5));
+//WienerFilter 维纳滤波函数
+void WienerFilter(const Mat& src, Mat& dst, double noiseVariance, const Size& block = Size(5, 5));
+//on_mouse 鼠标事件判定函数，主要与回调函数setMouseCallback一起使用
+void on_mouse(int event, int x, int y, int flags, void * ustc)//event鼠标事件代号，x,y鼠标坐标，flags拖拽和键盘操作的代号
 {
     static Point pre_pt = Point(-1, -1);//初始坐标
     static Point cur_pt = Point(-1, -1);//实时坐标
@@ -76,6 +80,7 @@ void on_mouse(int event, int x, int y, int flags, void *ustc)//event鼠标事件
     }
 }
 double WienerFilterImpl(const Mat& src, Mat& dst, double noiseVariance, const Size& block){
+    //判断图像是否是单通道灰度图像以便进行运算
     assert(("Invalid block dimensions", block.width % 2 == 1 && block.height % 2 == 1 && block.width > 1 && block.height > 1));
     assert(("src and dst must be one channel grayscale images", src.channels() == 1, dst.channels() == 1));
     int h = src.rows;
@@ -83,7 +88,7 @@ double WienerFilterImpl(const Mat& src, Mat& dst, double noiseVariance, const Si
     dst = Mat1b(h, w);
     Mat1d means, sqrMeans, variances;
     Mat1d avgVarianceMat;
-
+    //方框滤波
     boxFilter(src, means, CV_64F, block, Point(-1, -1), true, BORDER_REPLICATE);
     sqrBoxFilter(src, sqrMeans, CV_64F, block, Point(-1, -1), true, BORDER_REPLICATE);
 
@@ -91,14 +96,14 @@ double WienerFilterImpl(const Mat& src, Mat& dst, double noiseVariance, const Si
     variances = sqrMeans - (means.mul(means));
 
     if (noiseVariance < 0){
-        // 估计噪声大小
+        // 估计噪声的数值
         reduce(variances, avgVarianceMat, 1, CV_REDUCE_SUM, -1);
         reduce(avgVarianceMat, avgVarianceMat, 0, CV_REDUCE_SUM, -1);
         noiseVariance = avgVarianceMat(0, 0) / (h*w);
     }
 
     for (int r = 0; r < h; ++r){
-        // 得到每行的坐标
+        // 求取图像每行的坐标位置
         auto const * const srcRow = src.ptr<uchar>(r);
         auto * const dstRow = dst.ptr<uchar>(r);
         auto * const varRow = variances.ptr<double>(r);
@@ -111,24 +116,35 @@ double WienerFilterImpl(const Mat& src, Mat& dst, double noiseVariance, const Si
     }
     return noiseVariance;
 }
-void WienerFilter(const Mat& src, Mat& dst, double noiseVariance, const Size& block) {
+void WienerFilter(const Mat& src, Mat& dst, double noiseVariance, const Size& block){
     WienerFilterImpl(src, dst, noiseVariance, block);
 }
 double WienerFilter(const Mat& src, Mat& dst, const Size& block){
     return WienerFilterImpl(src, dst, -1, block);
 }
+//filestring 图像所在文件夹，末尾必须要有"\"；imagepath为图像ROI选取鼠标操作图像，是图像绝对路径
+//shape 为图像格式，如：".jpg";Imax,Imin为运算结果
+void ImageProcessGetmaxmin(string filestring,string imagepath,string shape,Mat &Imax,Mat &Imin);
+//测试函数 main
 int main() {
-    string mdir = "C:\\Users\\c1535\\Desktop\\Program\\";
-    string imgpath ="C:\\Users\\c1535\\Desktop\\Program\\0.jpg";
+    string mdir = "C:\\Users\\CAJ\\Desktop\\suanfa\\huawei\\";
+    string imgpath ="C:\\Users\\CAJ\\Desktop\\suanfa\\huawei\\0.jpg";
     string geshi = ".jpg";
-    org = imread(imgpath);
+    Mat imagemin,imagemax;
+    ImageProcessGetmaxmin(mdir,imgpath,geshi,imagemax,imagemin);
+    imshow("Imax",imagemax);
+    imshow("Imin",imagemin);
+    waitKey(0);
+}
+void ImageProcessGetmaxmin(string filestring,string imagepath,string shape,Mat &Imax,Mat &Imin){
+    org = imread(imagepath);
     if(org.empty()){
         cout << "读取图像文件错误，检查文件路径是否正确！" << endl;
-        return -1;
+        return;
     }
-    int length = imgpath.length();
-    imgpath.erase(length-4,length);
-    string txt_path = imgpath.append(".txt");
+    int length = imagepath.length();
+    imagepath.erase(length-4,length);
+    string txt_path = imagepath.append(".txt");
     if (_access(txt_path.c_str(),0) != -1){ //若文件存在,则读出每一个数据存到array1
         cout << "文本文件已存在" << endl;
         ifstream data(txt_path); //待读取文件的目录
@@ -170,18 +186,19 @@ int main() {
     for(int i = 0;i <= 135; i += 45){
         char str[16] = {0};
         itoa(i,str,10);
-        string fliename = mdir + str + geshi;
+        string fliename = filestring + str + shape;
         Mat img2 = imread(fliename);
         if(img2.empty()){
             cout << "分割图像读取错误！请检查路径是否正确！" << endl;
             break;
         }
-        //这儿不做精度转换，因为不影响分割操作
+        //做精度转换，但不影响分割操作
         Mat gray;
         cvtColor(img2, gray, COLOR_BGR2GRAY);
         gray.convertTo(gray,CV_64F,1/255.0);
         if (DEBUG == 2) {
-            imshow("原图", gray);
+            imshow("initial image", gray);
+            waitKey(1000);
         }
         if (i == 45) {
             Rect rect(x1,y1 + 5,w1,h1);
@@ -196,14 +213,14 @@ int main() {
             Rect rect(x1,y1,w1,h1);
             I = gray(rect);
         }
-        string saveimage = mdir + str + "1.jpg";
+        string saveimage = filestring + str + "1.jpg";
         //这次转换数据类型用于保存图像
         I.convertTo(I,CV_8U,255);
         //imwrite(saveimage,I);
 
         if (DEBUG > 0) {
-            imshow("截取后原图",I);
-            waitKey(0);
+            imshow("intercept image",I);
+            waitKey(1000);
         }
         //阈值分割
         I.convertTo(I,CV_64F,1/255.0);//转换为精度double类型，并进行归一化
@@ -230,8 +247,8 @@ int main() {
         GaussianBlur(I_all1, I_all, Size(5, 5), sigma);
         //
         if (DEBUG == 1) {
-            imshow("截取后分割图", I_all);
-            waitKey(0);
+            imshow("split image",I_all);
+            waitKey(1000);
         }
         if(i == 0){
             I_all.convertTo(I0_all,CV_64F);
@@ -247,7 +264,6 @@ int main() {
     I = I0_all + I90_all;
     Mat Q = I0_all-I90_all;
     Mat U = (I45_all+I135_all)-(I0_all+I90_all);
-    Mat Imax,Imin;
     Imax = Mat::zeros(I.size(), I.type());
     Imin = Mat::zeros(I.size(), I.type());
     for (int i = 0; i < I.rows; i++) {
@@ -259,7 +275,4 @@ int main() {
             Imin.at<double>(i,j) = c/2.0;
         }
     }
-    imshow("Imax",Imax);
-    imshow("Imin",Imin);
-    waitKey(0);
 }
