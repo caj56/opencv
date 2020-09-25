@@ -9,7 +9,8 @@ using namespace std;
 using namespace cv;
 //org:为输入图像数据;img:为ROI区域显示的副本（及对此图操作不影响原图）
 Mat org, img, tmp;
-int array1[4];
+//该容器用来存放ROI区域的坐标信息
+vector<int> res;
 int DEBUG= 2;
 int Threshold = 15;
 float sigma = 1.6;
@@ -69,12 +70,12 @@ void on_mouse(int event, int x, int y, int flags, void * ustc)//event鼠标事�
             printf("width == 0 || height == 0");
             return;
         }
-        array1[0] = min(cur_pt.x, pre_pt.x);
-        array1[1] = min(cur_pt.y, pre_pt.y);
-        array1[2] = w;
-        array1[3] = h;
-        for(int a;a < 4;a++){
-            cout << array1[a] << "\t";
+        res.push_back(min(cur_pt.x, pre_pt.x));
+        res.push_back( min(cur_pt.y, pre_pt.y));
+        res.push_back(w);
+        res.push_back(h);
+        for(int re : res){
+            cout << re << endl;
         }
         cout << endl;
     }
@@ -127,8 +128,8 @@ double WienerFilter(const Mat& src, Mat& dst, const Size& block){
 void ImageProcessGetmaxmin(string filestring,string imagepath,string shape,Mat &Imax,Mat &Imin);
 //测试函数 main
 int main() {
-    string mdir = "C:\\Users\\CAJ\\Desktop\\suanfa\\huawei\\";
-    string imgpath ="C:\\Users\\CAJ\\Desktop\\suanfa\\huawei\\0.jpg";
+    string mdir = "C:\\Users\\c1535\\Desktop\\Program\\";
+    string imgpath ="C:\\Users\\c1535\\Desktop\\Program\\0.jpg";
     string geshi = ".jpg";
     Mat imagemin,imagemax;
     ImageProcessGetmaxmin(mdir,imgpath,geshi,imagemax,imagemin);
@@ -148,7 +149,6 @@ void ImageProcessGetmaxmin(string filestring,string imagepath,string shape,Mat &
     if (_access(txt_path.c_str(),0) != -1){ //若文件存在,则读出每一个数据存到array1
         cout << "文本文件已存在" << endl;
         ifstream data(txt_path); //待读取文件的目录
-        vector<int> res;
         string line;
         while (getline(data, line)) {
             stringstream ss; //输入流
@@ -159,9 +159,6 @@ void ImageProcessGetmaxmin(string filestring,string imagepath,string shape,Mat &
                     res.push_back(temp); //保存到vector
             }
         }
-        for(int i =0;i < res.size();i++){
-            array1[i] = res[i];
-        }
     }else{
         cout << "文本文件不存在" << endl;
         org.copyTo(img);
@@ -169,17 +166,17 @@ void ImageProcessGetmaxmin(string filestring,string imagepath,string shape,Mat &
         setMouseCallback("img", on_mouse, nullptr);//调用回调函数
         imshow("img", img);
         waitKey(0);
-//        FILE *fp;
-//        fp = fopen(txt_path.c_str(),"w");
-//        for(int a = 0;a < sizeof(array1)/sizeof(int);a++){
-//            fprintf(fp,"%d\t",array1[a]);
-//        }
-//        fclose(fp);
+        FILE *fp;
+        fp = fopen(txt_path.c_str(),"w");
+        for(int re : res){
+            fprintf(fp,"%d\t",re);
+        }
+        fclose(fp);
     }
-    int x1 = round(array1[0]);
-    int y1 = round(array1[1]);
-    int w1 = round(array1[2]);
-    int h1 = round(array1[3]);
+    int x1 = round(res[0]);
+    int y1 = round(res[1]);
+    int w1 = round(res[2]);
+    int h1 = round(res[3]);
     //图像裁剪
     Mat I;
     Mat I0_all,I45_all,I90_all,I135_all;
@@ -216,7 +213,7 @@ void ImageProcessGetmaxmin(string filestring,string imagepath,string shape,Mat &
         string saveimage = filestring + str + "1.jpg";
         //这次转换数据类型用于保存图像
         I.convertTo(I,CV_8U,255);
-        //imwrite(saveimage,I);
+        imwrite(saveimage,I);
 
         if (DEBUG > 0) {
             imshow("intercept image",I);
@@ -275,5 +272,4 @@ void ImageProcessGetmaxmin(string filestring,string imagepath,string shape,Mat &
             Imin.at<double>(i,j) = c/2.0;
         }
     }
-
 }
