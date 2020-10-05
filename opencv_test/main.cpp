@@ -15,8 +15,6 @@ vector<int> res;
 int DEBUG = 2;
 int Threshold = 15;
 double sigma = 1.6;
-//_access 只是简单判别在绝对路径下的文件是否存在
-//int _access(const char *pathname, int mode);
 //WienerFilter 用来维纳滤波噪声估计
 double WienerFilter(const Mat& src, Mat& dst, const Size& block = Size(5, 5));
 //WienerFilter 维纳滤波函数
