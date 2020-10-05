@@ -20,7 +20,7 @@ double WienerFilter(const Mat& src, Mat& dst, const Size& block = Size(5, 5));
 //WienerFilter 维纳滤波函数
 void WienerFilter(const Mat& src, Mat& dst, double noiseVariance, const Size& block = Size(5, 5));
 //on_mouse 鼠标事件判定函数，主要与回调函数setMouseCallback一起使用
-void on_mouse(int event, int x, int y, int flags, void* ustc)//event鼠标事件代号，x,y鼠标坐标，flags拖拽和键盘操作的代号
+void on_mouse(int event, int x, int y, int flags, void*)//event鼠标事件代号，x,y鼠标坐标，flags拖拽和键盘操作的代号
 {
     static Point pre_pt = Point(-1, -1);//初始坐标
     static Point cur_pt = Point(-1, -1);//实时坐标
@@ -146,12 +146,11 @@ void ImageProcessGetmaxmin(const string& filestring, string imagepath, const str
         return;
     }
     int length = (int)imagepath.length();
-    int length1 = length - 4;
-    imagepath.erase(length1, length);
-    string txt_path = imagepath.append(".txt");
-    if (_access(txt_path.c_str(), 0) != -1) { //若文件存在,则读出每一个数据存到array1
+    int n = (int)imagepath.find(shape);
+    imagepath.replace(n,length,".txt");
+    if (_access(imagepath.c_str(), 0) != -1) { //若文件存在,则读出每一个数据存到array1
         cout << "文本文件已存在" << endl;
-        ifstream data(txt_path); //待读取文件的目录
+        ifstream data(imagepath); //待读取文件的目录
         string line;
         while (getline(data, line)) {
             stringstream ss; //输入流
@@ -171,9 +170,11 @@ void ImageProcessGetmaxmin(const string& filestring, string imagepath, const str
         imshow("img", img);
         waitKey(0);
         FILE* fp;
-        errno_t err = fopen_s(&fp, txt_path.c_str(),"a+");
-        for (int re : res) {
-            fprintf(fp, "%d\t", re);
+        errno_t err = fopen_s(&fp, imagepath.c_str(),"a+");
+        if (err == 0){
+            for (int re : res) {
+                fprintf(fp, "%d\t", re);
+            }
         }
         fclose(fp);
     }
