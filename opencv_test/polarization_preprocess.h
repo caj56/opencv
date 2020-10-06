@@ -22,7 +22,8 @@ void WienerFilter(const Mat& src, Mat& dst, double noiseVariance, const Size& bl
 //on_mouse 鼠标事件判定函数，主要与回调函数setMouseCallback一起使用
 void on_mouse(int event, int x, int y, int flags, void*);//event鼠标事件代号，x,y鼠标坐标，flags拖拽和键盘操作的代号
 //filestring 图像所在文件夹，末尾必须要有"\"；imagepath为图像ROI选取鼠标操作图像，是图像绝对路径
-//shape 为图像格式，如：".jpg";Imax,Imin为运算结果
+//shape 为图像格式，如：".jpg";Imax,Imin为运算结果，DEBUG：常量-》2为截取+截取后，1为截取后+分割，0为不显示
+//Threshold为阈值，sigma为滤波偏差
 void ImageProcessGetmaxmin(const string& filestring, string imagepath, const string& shape, Mat& Imax, Mat& Imin,
                            int &DEBUG,int &Threshold,double &sigma);
 #endif //OPENCV_TEST_POLARIZATION_PREPROCESS_H
