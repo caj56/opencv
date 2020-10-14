@@ -143,7 +143,7 @@ void ImageProcessGetmaxmin(const string& filestring, string imagepath, const str
     else {
         cout << "文本文件不存在" << endl;
         org.copyTo(img);
-        namedWindow("img");//定义一个img窗口
+        namedWindow("img",0);//定义一个img窗口
         setMouseCallback("img", on_mouse, nullptr);//调用回调函数
         imshow("img", img);
         waitKey(0);
@@ -172,11 +172,14 @@ void ImageProcessGetmaxmin(const string& filestring, string imagepath, const str
             cout << "分割图像读取错误！请检查路径是否正确！" << endl;
             break;
         }
-        //做精度转换，但不影响分割操作
+        //判断图像图像通道
         Mat gray;
         cvtColor(img2, gray, COLOR_BGR2GRAY);
-        gray.convertTo(gray, CV_64F, 1 / 255.0);
+        //做精度转换，但不影响分割操作
+        //gray.convertTo(gray, CV_64F);
         if (DEBUG == 2) {
+            //gray.convertTo(gray,CV_8U);
+            namedWindow("initial image",0);
             imshow("initial image", gray);
             waitKey(1000);
         }
@@ -199,38 +202,38 @@ void ImageProcessGetmaxmin(const string& filestring, string imagepath, const str
         //为防止覆盖原来文件，保存时添加_
         string saveimage = filestring + str + "_.jpg";
         //这次转换数据类型用于保存图像
-        I.convertTo(I, CV_8U, 255);
+        //I.convertTo(I, CV_8U);
         imwrite(saveimage,I);
 
         if (DEBUG > 0) {
+            namedWindow("intercept image",0);
             imshow("intercept image", I);
             waitKey(1000);
         }
         //阈值分割
-        I.convertTo(I, CV_64F, 1 / 255.0);//转换为精度double类型，并进行归一化
+        I.convertTo(I, CV_32F,1/255.0);//转换为精度double类型，并进行归一化
         Mat I_all_threshold;
-        threshold(I, I_all_threshold, Threshold / (pow(2, 8) - 1), 1, THRESH_BINARY);
-        Mat I_all;
-        int h = I_all_threshold.rows;
-        int w = I_all_threshold.cols;
-        I_all = Mat::zeros(I.size(), I.type());
-        for (int a = 0; a < h; a++) {
-            for (int b = 0; b < w; b++) {
-                double u = I.at<double>(a, b);
-                double v = I_all_threshold.at<double>(a, b);
-                I_all.at<double>(a, b) = u * v;
-            }
-        }
-        //去噪:灰度double图像映射到uint8图像计算噪声，进行维纳滤波
-        //然后转换到double数据类型进行高斯滤波
+        threshold(I, I_all_threshold, Threshold /255.0, 1, THRESH_BINARY);
+        I_all_threshold.convertTo(I_all_threshold,CV_64F);
+        I.convertTo(I,CV_64F);
+        Mat I_all = I.mul(I_all_threshold);
+        //去噪
         I_all.convertTo(I_all, CV_8U, 255);
         Mat gausFilter, I_all1;
         double noise = WienerFilter(I_all, gausFilter, Size(5, 5));
         WienerFilter(I_all, I_all1, noise, Size(5, 5));
-        I_all1.convertTo(I_all1, CV_64F, 1 / 255.0);
-        GaussianBlur(I_all1, I_all, Size(5, 5), sigma);
-        //
+        I_all1.convertTo(I_all1, CV_64F);
+        Mat kernel(1,5,CV_64F);
+        kernel = getGaussianKernel(5,1.6);
+        Mat kernelxy(5,5,CV_64F);
+        for(int x = 0;x < 5;x++){
+            for(int y = 0;y < 5;y++){
+                kernelxy.at<double>(x,y) = kernel.at<double>(x)*kernel.at<double>(y);
+            }
+        }
+        filter2D(I_all,I_all,-1,kernelxy,Point(-1,-1));
         if (DEBUG == 1) {
+            namedWindow("split image",0);
             imshow("split image", I_all);
             waitKey(1000);
         }
@@ -258,8 +261,9 @@ void ImageProcessGetmaxmin(const string& filestring, string imagepath, const str
             double a = Q.at<double>(i, j);
             double b = U.at<double>(i, j);
             double c = I.at<double>(i, j) + sqrt(pow(a, 2) + pow(b, 2));
+            double d = I.at<double>(i, j) - sqrt(pow(a, 2) + pow(b, 2));
             Imax.at<double>(i, j) = c / 2.0;
-            Imin.at<double>(i, j) = c / 2.0;
+            Imin.at<double>(i, j) = d / 2.0;
         }
     }
 }

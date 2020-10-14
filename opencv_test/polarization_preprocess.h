@@ -1,7 +1,6 @@
 //
 // Created by c1535 on 2020/10/5.
 //
-
 #ifndef OPENCV_TEST_POLARIZATION_PREPROCESS_H
 #define OPENCV_TEST_POLARIZATION_PREPROCESS_H
 #include <iostream>
