@@ -196,10 +196,11 @@ void ImageProcessGetmaxmin(const string& filestring, string imagepath, const str
             Rect rect(x1, y1, w1, h1);
             I = gray(rect);
         }
-        string saveimage = filestring + str + "1.jpg";
+        //为防止覆盖原来文件，保存时添加_
+        string saveimage = filestring + str + "_.jpg";
         //这次转换数据类型用于保存图像
         I.convertTo(I, CV_8U, 255);
-        //imwrite(saveimage,I);
+        imwrite(saveimage,I);
 
         if (DEBUG > 0) {
             imshow("intercept image", I);

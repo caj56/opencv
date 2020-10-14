@@ -1,6 +1,7 @@
 #include <iostream>
 using namespace std;
 #include "polarization_preprocess.h"
+//测试文件
 int main()
 {
     string mdir = R"(C:\Users\c1535\Desktop\Program\)";
